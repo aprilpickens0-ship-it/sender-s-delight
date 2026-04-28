@@ -29,14 +29,13 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "MailRotor — Admin Console" },
+      { name: "description", content: "Admin console for managing SMTP accounts, templates, and sequential email sending with rotation and pause/resume." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "MailRotor — Admin Console" },
+      { property: "og:description", content: "Sequential email sending with SMTP rotation and pause/resume." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
