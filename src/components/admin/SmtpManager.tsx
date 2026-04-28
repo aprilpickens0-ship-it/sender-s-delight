@@ -70,14 +70,38 @@ export function SmtpManager() {
 
   const test = async (s: Smtp) => {
     setTesting(s.id);
-    const r = await mockSmtpTest(s);
-    await supabase
-      .from("smtp_accounts")
-      .update({ is_active: r.ok, last_tested_at: new Date().toISOString() })
-      .eq("id", s.id);
+    // Enqueue a test request — the external Node worker (worker/) picks it up,
+    // runs a real SMTP connection via nodemailer, and writes the result back.
+    const { data: req, error } = await supabase
+      .from("smtp_test_requests")
+      .insert({ smtp_id: s.id })
+      .select()
+      .single();
+    if (error || !req) {
+      setTesting(null);
+      toast.error(error?.message ?? "Failed to enqueue test");
+      return;
+    }
+    toast.info(`Testing ${s.name}…`);
+
+    // Poll for completion (worker should respond within seconds)
+    const started = Date.now();
+    while (Date.now() - started < 30_000) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const { data: row } = await supabase
+        .from("smtp_test_requests")
+        .select("*")
+        .eq("id", req.id)
+        .single();
+      if (row?.status === "done") {
+        setTesting(null);
+        if (row.result_ok) toast.success(`${s.name} is active`);
+        else toast.error(`${s.name} failed: ${row.error_message ?? "unknown"}`);
+        return;
+      }
+    }
     setTesting(null);
-    if (r.ok) toast.success(`${s.name} is active`);
-    else toast.error(`${s.name} failed: ${"error" in r ? r.error : ""}`);
+    toast.error(`${s.name}: worker did not respond in 30s. Is the Node worker running?`);
   };
 
   const testAll = async () => {
