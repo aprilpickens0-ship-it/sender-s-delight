@@ -1,0 +1,18 @@
+{
+  "name": "mailrotor-worker",
+  "version": "1.0.0",
+  "description": "External Node.js worker that performs real SMTP sending and testing for the MailRotor admin panel.",
+  "main": "worker.js",
+  "type": "module",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "nodemailer": "^6.9.14"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
