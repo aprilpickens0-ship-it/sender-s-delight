@@ -14,7 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      campaign_state: {
+        Row: {
+          current_position: number
+          delay_seconds: number
+          id: number
+          smtp_rotation_index: number
+          status: string
+          template_rotation_index: number
+          template_strategy: string
+          updated_at: string
+        }
+        Insert: {
+          current_position?: number
+          delay_seconds?: number
+          id?: number
+          smtp_rotation_index?: number
+          status?: string
+          template_rotation_index?: number
+          template_strategy?: string
+          updated_at?: string
+        }
+        Update: {
+          current_position?: number
+          delay_seconds?: number
+          id?: number
+          smtp_rotation_index?: number
+          status?: string
+          template_rotation_index?: number
+          template_strategy?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          name: string
+          subject: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          name: string
+          subject: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          name?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      recipients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          position: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          position: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          position?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      send_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          smtp_id: string | null
+          smtp_name: string | null
+          status: string
+          template_id: string | null
+          template_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          smtp_id?: string | null
+          smtp_name?: string | null
+          status: string
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          smtp_id?: string | null
+          smtp_name?: string | null
+          status?: string
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Relationships: []
+      }
+      smtp_accounts: {
+        Row: {
+          created_at: string
+          emails_sent: number
+          host: string
+          id: string
+          is_active: boolean
+          last_tested_at: string | null
+          last_used_at: string | null
+          name: string
+          password: string
+          port: number
+          rotation_order: number
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          emails_sent?: number
+          host: string
+          id?: string
+          is_active?: boolean
+          last_tested_at?: string | null
+          last_used_at?: string | null
+          name: string
+          password: string
+          port?: number
+          rotation_order?: number
+          username: string
+        }
+        Update: {
+          created_at?: string
+          emails_sent?: number
+          host?: string
+          id?: string
+          is_active?: boolean
+          last_tested_at?: string | null
+          last_used_at?: string | null
+          name?: string
+          password?: string
+          port?: number
+          rotation_order?: number
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
