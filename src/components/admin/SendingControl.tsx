@@ -188,7 +188,7 @@ export function SendingControl() {
 
       {status === "running" && (
         <p className="mt-4 text-xs text-muted-foreground">
-          Engine running in this browser tab. Closing the tab will pause sending — reopen and resume to continue from where it stopped.
+          Campaign marked as <strong>running</strong>. The external Node worker (see <code>/worker</code> folder) must be running on your VPS to actually send emails. Closing this tab does NOT stop sending — the worker continues independently.
         </p>
       )}
     </Card>
