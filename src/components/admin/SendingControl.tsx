@@ -25,7 +25,7 @@ export function SendingControl() {
     if (data) {
       setState(data as State);
       setDelay(String(data.delay_seconds));
-      setStrategy(data.template_strategy);
+      setStrategy((data.template_strategy as "sequential" | "random") ?? "sequential");
     }
   };
 
