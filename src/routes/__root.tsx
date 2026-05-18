@@ -33,9 +33,13 @@ export const Route = createRootRoute({
       { name: "description", content: "Admin console for managing SMTP accounts, templates, and sequential email sending with rotation and pause/resume." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "MailRotor — Admin Console" },
-      { property: "og:description", content: "Sequential email sending with SMTP rotation and pause/resume." },
+      { property: "og:description", content: "Admin console for managing SMTP accounts, templates, and sequential email sending with rotation and pause/resume." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "MailRotor — Admin Console" },
+      { name: "twitter:description", content: "Admin console for managing SMTP accounts, templates, and sequential email sending with rotation and pause/resume." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/eecf6852-6476-4154-865a-6e1d25118e3f/id-preview-19ffa0ae--8fb83ced-ace1-484a-a692-385b7b64d761.lovable.app-1779125966044.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/eecf6852-6476-4154-865a-6e1d25118e3f/id-preview-19ffa0ae--8fb83ced-ace1-484a-a692-385b7b64d761.lovable.app-1779125966044.png" },
     ],
     links: [
       {
