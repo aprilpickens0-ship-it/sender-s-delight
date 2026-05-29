@@ -10,7 +10,8 @@ interface Stats {
   pending: number;
   smtpActive: number;
   smtpInactive: number;
-  status: string;
+  campaignsRunning: number;
+  campaignsTotal: number;
 }
 
 export function Dashboard() {
@@ -21,17 +22,19 @@ export function Dashboard() {
     pending: 0,
     smtpActive: 0,
     smtpInactive: 0,
-    status: "idle",
+    campaignsRunning: 0,
+    campaignsTotal: 0,
   });
 
   const load = async () => {
-    const [r, s, st] = await Promise.all([
+    const [r, s, c] = await Promise.all([
       supabase.from("recipients").select("status"),
       supabase.from("smtp_accounts").select("is_active"),
-      supabase.from("campaign_state").select("status").eq("id", 1).single(),
+      supabase.from("campaigns").select("status"),
     ]);
     const recs = r.data ?? [];
     const smtps = s.data ?? [];
+    const cams = c.data ?? [];
     setStats({
       total: recs.length,
       sent: recs.filter((x: any) => x.status === "sent").length,
@@ -39,13 +42,14 @@ export function Dashboard() {
       pending: recs.filter((x: any) => x.status === "pending").length,
       smtpActive: smtps.filter((x: any) => x.is_active).length,
       smtpInactive: smtps.filter((x: any) => !x.is_active).length,
-      status: st.data?.status ?? "idle",
+      campaignsRunning: cams.filter((x: any) => x.status === "running").length,
+      campaignsTotal: cams.length,
     });
   };
 
   useEffect(() => {
     load();
-    const tables = ["recipients", "smtp_accounts", "campaign_state", "send_logs"];
+    const tables = ["recipients", "smtp_accounts", "campaigns", "send_logs"];
     const channels = tables.map((t) =>
       supabase
         .channel(`dash-${t}`)
@@ -58,20 +62,13 @@ export function Dashboard() {
   }, []);
 
   const tiles = [
-    { label: "Total", value: stats.total, icon: Inbox, color: "text-foreground", bg: "bg-secondary" },
+    { label: "Recipients", value: stats.total, icon: Inbox, color: "text-foreground", bg: "bg-secondary" },
     { label: "Sent", value: stats.sent, icon: Send, color: "text-success", bg: "bg-success/15" },
     { label: "Pending", value: stats.pending, icon: Activity, color: "text-primary", bg: "bg-primary/15" },
     { label: "Failed", value: stats.failed, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/15" },
     { label: "Active SMTPs", value: stats.smtpActive, icon: Server, color: "text-success", bg: "bg-success/15" },
     { label: "Inactive SMTPs", value: stats.smtpInactive, icon: Server, color: "text-destructive", bg: "bg-destructive/15" },
   ];
-
-  const statusBadge = {
-    idle: "bg-muted text-muted-foreground",
-    running: "bg-success/20 text-success",
-    paused: "bg-warning/20 text-warning",
-    completed: "bg-primary/20 text-primary",
-  }[stats.status] ?? "bg-muted text-muted-foreground";
 
   return (
     <Card className="p-6">
@@ -85,8 +82,8 @@ export function Dashboard() {
             <p className="text-sm text-muted-foreground">Real-time campaign overview</p>
           </div>
         </div>
-        <div className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide ${statusBadge}`}>
-          {stats.status}
+        <div className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-primary/15 text-primary">
+          {stats.campaignsRunning} running / {stats.campaignsTotal} campaigns
         </div>
       </div>
 

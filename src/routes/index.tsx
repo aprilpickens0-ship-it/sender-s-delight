@@ -4,13 +4,12 @@ import { AdminGate } from "@/components/admin/AdminGate";
 import { Dashboard } from "@/components/admin/Dashboard";
 import { SmtpManager } from "@/components/admin/SmtpManager";
 import { TemplateManager } from "@/components/admin/TemplateManager";
-import { RecipientManager } from "@/components/admin/RecipientManager";
-import { SendingControl } from "@/components/admin/SendingControl";
+import { CampaignManager } from "@/components/admin/CampaignManager";
 import { LogsPanel } from "@/components/admin/LogsPanel";
 import { setAdminAuthed } from "@/lib/admin-auth";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { LayoutDashboard, Server, FileText, Users, Send, ScrollText, LogOut, Mail } from "lucide-react";
+import { LayoutDashboard, Server, FileText, Send, ScrollText, LogOut, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: AdminPage,
@@ -20,8 +19,7 @@ const sections = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "smtp", label: "SMTP Accounts", icon: Server },
   { id: "templates", label: "Templates", icon: FileText },
-  { id: "recipients", label: "Recipients", icon: Users },
-  { id: "sending", label: "Sending Control", icon: Send },
+  { id: "campaigns", label: "Campaigns", icon: Send },
   { id: "logs", label: "Activity Log", icon: ScrollText },
 ] as const;
 
@@ -32,7 +30,6 @@ function AdminPage() {
     <AdminGate>
       <Toaster richColors position="top-right" />
       <div className="min-h-screen flex bg-background">
-        {/* Sidebar */}
         <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
           <div className="p-6 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
@@ -80,27 +77,17 @@ function AdminPage() {
           </div>
         </aside>
 
-        {/* Main */}
         <main className="flex-1 overflow-auto">
           <div className="max-w-6xl mx-auto p-6 lg:p-8 space-y-6">
             {active === "dashboard" && (
               <>
                 <Dashboard />
-                <div className="grid lg:grid-cols-2 gap-6">
-                  <SendingControl />
-                  <LogsPanel />
-                </div>
+                <LogsPanel />
               </>
             )}
             {active === "smtp" && <SmtpManager />}
             {active === "templates" && <TemplateManager />}
-            {active === "recipients" && <RecipientManager />}
-            {active === "sending" && (
-              <>
-                <SendingControl />
-                <LogsPanel />
-              </>
-            )}
+            {active === "campaigns" && <CampaignManager />}
             {active === "logs" && <LogsPanel />}
           </div>
         </main>
