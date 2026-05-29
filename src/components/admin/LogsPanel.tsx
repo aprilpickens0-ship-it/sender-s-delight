@@ -10,6 +10,7 @@ interface Log {
   recipient_email: string;
   smtp_name: string | null;
   template_name: string | null;
+  campaign_name: string | null;
   status: string;
   error_message: string | null;
   created_at: string;
@@ -65,6 +66,7 @@ export function LogsPanel() {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">{l.recipient_email}</div>
                   <div className="text-xs text-muted-foreground truncate">
+                    {l.campaign_name && `[${l.campaign_name}] `}
                     {l.smtp_name && `via ${l.smtp_name}`}
                     {l.template_name && ` · ${l.template_name}`}
                     {l.error_message && ` · ${l.error_message}`}
