@@ -14,32 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
-      campaign_state: {
+      campaign_smtps: {
         Row: {
+          campaign_id: string
+          rotation_order: number
+          smtp_id: string
+        }
+        Insert: {
+          campaign_id: string
+          rotation_order?: number
+          smtp_id: string
+        }
+        Update: {
+          campaign_id?: string
+          rotation_order?: number
+          smtp_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_smtps_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_smtps_smtp_id_fkey"
+            columns: ["smtp_id"]
+            isOneToOne: false
+            referencedRelation: "smtp_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_templates: {
+        Row: {
+          campaign_id: string
+          rotation_order: number
+          template_id: string
+        }
+        Insert: {
+          campaign_id: string
+          rotation_order?: number
+          template_id: string
+        }
+        Update: {
+          campaign_id?: string
+          rotation_order?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_templates_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_templates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          created_at: string
           current_position: number
           delay_seconds: number
-          id: number
+          id: string
+          name: string
           smtp_rotation_index: number
+          smtp_strategy: string
           status: string
           template_rotation_index: number
           template_strategy: string
           updated_at: string
         }
         Insert: {
+          created_at?: string
           current_position?: number
           delay_seconds?: number
-          id?: number
+          id?: string
+          name: string
           smtp_rotation_index?: number
+          smtp_strategy?: string
           status?: string
           template_rotation_index?: number
           template_strategy?: string
           updated_at?: string
         }
         Update: {
+          created_at?: string
           current_position?: number
           delay_seconds?: number
-          id?: number
+          id?: string
+          name?: string
           smtp_rotation_index?: number
+          smtp_strategy?: string
           status?: string
           template_rotation_index?: number
           template_strategy?: string
@@ -73,6 +148,7 @@ export type Database = {
       }
       recipients: {
         Row: {
+          campaign_id: string | null
           created_at: string
           email: string
           id: string
@@ -80,6 +156,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          campaign_id?: string | null
           created_at?: string
           email: string
           id?: string
@@ -87,16 +164,27 @@ export type Database = {
           status?: string
         }
         Update: {
+          campaign_id?: string | null
           created_at?: string
           email?: string
           id?: string
           position?: number
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       send_logs: {
         Row: {
+          campaign_id: string | null
+          campaign_name: string | null
           created_at: string
           error_message: string | null
           id: string
@@ -108,6 +196,8 @@ export type Database = {
           template_name: string | null
         }
         Insert: {
+          campaign_id?: string | null
+          campaign_name?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -119,6 +209,8 @@ export type Database = {
           template_name?: string | null
         }
         Update: {
+          campaign_id?: string | null
+          campaign_name?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -129,7 +221,15 @@ export type Database = {
           template_id?: string | null
           template_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "send_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       smtp_accounts: {
         Row: {
