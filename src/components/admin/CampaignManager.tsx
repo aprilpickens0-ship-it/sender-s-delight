@@ -17,7 +17,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Play, Pause, Square, Trash2, Send, Upload, Users, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Play, Pause, Square, Trash2, Send, Upload, Users, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface Campaign {
