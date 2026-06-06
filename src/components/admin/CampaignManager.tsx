@@ -17,7 +17,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Play, Pause, Square, Trash2, Send, Upload, Users, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Play, Pause, Square, Trash2, Send, Upload, Users, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface Campaign {
@@ -422,25 +422,38 @@ export function CampaignManager() {
 }
 
 function CampaignDetail({ campaignId }: { campaignId: string }) {
-  const [cSmtps, setCSmtps] = useState<{ name: string; is_active: boolean }[]>([]);
-  const [cTpls, setCTpls] = useState<{ name: string }[]>([]);
+  const [cSmtps, setCSmtps] = useState<{ id: string; name: string; is_active: boolean }[]>([]);
+  const [cTpls, setCTpls] = useState<{ id: string; name: string }[]>([]);
+  const [allSmtps, setAllSmtps] = useState<{ id: string; name: string; is_active: boolean }[]>([]);
+  const [allTpls, setAllTpls] = useState<{ id: string; name: string }[]>([]);
   const [text, setText] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [pickedSmtps, setPickedSmtps] = useState<string[]>([]);
+  const [pickedTpls, setPickedTpls] = useState<string[]>([]);
 
   const load = async () => {
-    const [s, t] = await Promise.all([
+    const [s, t, allS, allT] = await Promise.all([
       supabase
         .from("campaign_smtps")
-        .select("smtp_accounts(name,is_active)")
+        .select("smtp_id,smtp_accounts(id,name,is_active)")
         .eq("campaign_id", campaignId)
         .order("rotation_order"),
       supabase
         .from("campaign_templates")
-        .select("email_templates(name)")
+        .select("template_id,email_templates(id,name)")
         .eq("campaign_id", campaignId)
         .order("rotation_order"),
+      supabase.from("smtp_accounts").select("id,name,is_active").order("rotation_order"),
+      supabase.from("email_templates").select("id,name").order("created_at"),
     ]);
-    setCSmtps(((s.data as any[]) ?? []).map((r) => r.smtp_accounts).filter(Boolean));
-    setCTpls(((t.data as any[]) ?? []).map((r) => r.email_templates).filter(Boolean));
+    const csm = ((s.data as any[]) ?? []).map((r) => r.smtp_accounts).filter(Boolean);
+    const ctp = ((t.data as any[]) ?? []).map((r) => r.email_templates).filter(Boolean);
+    setCSmtps(csm);
+    setCTpls(ctp);
+    setAllSmtps((allS.data as any) ?? []);
+    setAllTpls((allT.data as any) ?? []);
+    setPickedSmtps(csm.map((x: any) => x.id));
+    setPickedTpls(ctp.map((x: any) => x.id));
   };
 
   useEffect(() => {
@@ -465,8 +478,33 @@ function CampaignDetail({ campaignId }: { campaignId: string }) {
     setText("");
   };
 
+  const toggle = (arr: string[], set: (v: string[]) => void, id: string) =>
+    set(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+
+  const saveSelection = async () => {
+    if (pickedSmtps.length === 0) return toast.error("Pick at least one SMTP");
+    if (pickedTpls.length === 0) return toast.error("Pick at least one template");
+    await supabase.from("campaign_smtps").delete().eq("campaign_id", campaignId);
+    await supabase.from("campaign_templates").delete().eq("campaign_id", campaignId);
+    await supabase.from("campaign_smtps").insert(
+      pickedSmtps.map((id, i) => ({ campaign_id: campaignId, smtp_id: id, rotation_order: i }))
+    );
+    await supabase.from("campaign_templates").insert(
+      pickedTpls.map((id, i) => ({ campaign_id: campaignId, template_id: id, rotation_order: i }))
+    );
+    toast.success("Campaign content updated");
+    setEditOpen(false);
+    load();
+  };
+
   return (
     <div className="border-t border-border p-4 space-y-4 bg-muted/20">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold uppercase text-muted-foreground">Content</div>
+        <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit selection
+        </Button>
+      </div>
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">SMTPs</div>
@@ -510,6 +548,59 @@ function CampaignDetail({ campaignId }: { campaignId: string }) {
           Add to Campaign
         </Button>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Campaign Content</DialogTitle>
+            <DialogDescription>Change which SMTPs and templates this campaign uses.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>SMTP Accounts ({pickedSmtps.length} selected)</Label>
+              <div className="max-h-48 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                {allSmtps.length === 0 && (
+                  <div className="p-3 text-sm text-muted-foreground">No SMTPs configured.</div>
+                )}
+                {allSmtps.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2 p-2.5 text-sm cursor-pointer hover:bg-muted/40">
+                    <Checkbox
+                      checked={pickedSmtps.includes(s.id)}
+                      onCheckedChange={() => toggle(pickedSmtps, setPickedSmtps, s.id)}
+                    />
+                    <span className="flex-1">{s.name}</span>
+                    <span className={`text-xs ${s.is_active ? "text-success" : "text-muted-foreground"}`}>
+                      {s.is_active ? "active" : "inactive"}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Templates ({pickedTpls.length} selected)</Label>
+              <div className="max-h-48 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                {allTpls.length === 0 && (
+                  <div className="p-3 text-sm text-muted-foreground">No templates yet.</div>
+                )}
+                {allTpls.map((t) => (
+                  <label key={t.id} className="flex items-center gap-2 p-2.5 text-sm cursor-pointer hover:bg-muted/40">
+                    <Checkbox
+                      checked={pickedTpls.includes(t.id)}
+                      onCheckedChange={() => toggle(pickedTpls, setPickedTpls, t.id)}
+                    />
+                    <span className="flex-1">{t.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={saveSelection}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
