@@ -1,186 +1,44 @@
-## Fresh DigitalOcean Droplet Setup — MailRotor Worker
+## Goal
 
-A clean, copy-paste guide to get the worker running from scratch. Each block is meant to be pasted as-is into the droplet's SSH session.
+Add 10 ready-to-use, spam-safe email templates to your `email_templates` table so they appear in the Templates list and can be assigned to any campaign.
 
----
+## Templates included
 
-### 1. Create the droplet (in DigitalOcean dashboard)
+1. Verify Your Email Address — account verification
+2. Reset Your Password — password reset
+3. New Login Detected — login alert
+4. Your Order Has Been Confirmed — order confirmation
+5. Your Order Is On The Way — shipping notification
+6. Payment Receipt — invoice/receipt
+7. Appointment Confirmed — appointment confirmation
+8. Reminder: Upcoming Appointment — appointment reminder
+9. Security Update for Your Account — security alert
+10. Your Subscription Will Renew Soon — subscription renewal
 
-- Image: **Ubuntu 24.04 LTS**
-- Plan: Basic, **Regular / 1 GB RAM / 1 CPU** ($6/mo is enough)
-- Region: closest to you
-- Authentication: **SSH key** (preferred) or password
-- Hostname: `mailrotor-worker`
-- Click **Create Droplet**, copy the public IP
+## Anti-spam design rules applied to every template
 
----
+- **Plain transactional tone** — no marketing/promo words ("free", "buy now", "limited time", "$$$", "click here").
+- **Balanced text-to-HTML ratio** — real sentences, no image-only emails, no large embedded images.
+- **No external CSS, no `<style>` blocks, no JS** — only safe inline styles on `<table>`-based layout (works in Gmail/Outlook/Yahoo).
+- **Single domain, no link shorteners** — uses `{{action_url}}` / `{{tracking_url}}` placeholders the recipient can trust.
+- **Clear sender identity + plain-text fallback feel** — greeting, body, signature, footer with mailing address & unsubscribe placeholder (required by CAN-SPAM/CASL).
+- **No suspicious attachments, no hidden text, no all-caps subject, no excessive punctuation.**
+- **Personalization placeholders**: `{{name}}`, `{{email}}`, `{{order_id}}`, `{{amount}}`, `{{date}}`, `{{time}}`, `{{location}}`, `{{action_url}}`, `{{company_name}}`, `{{company_address}}`, `{{unsubscribe_url}}` — your worker can substitute these at send time (placeholder substitution is out of scope for this change; templates remain valid HTML if left unreplaced).
+- **Each template ~80–150 words** — enough content to avoid "thin email" spam heuristics, short enough to not trigger length flags.
 
-### 2. SSH in
+## How they get added
 
-```bash
-ssh root@YOUR_DROPLET_IP
-```
+Insert 10 rows into `public.email_templates` (columns: `name`, `subject`, `body`). Nothing else changes — no schema migration, no UI change, no worker change. They will:
+- Appear immediately in the **Templates** tab (`TemplateManager.tsx` already lists everything in that table).
+- Be selectable when creating a campaign in `CampaignManager.tsx`.
+- Be deletable individually from the UI if you don't want one.
 
----
+## Out of scope (call out if you want them next)
 
-### 3. Install Node 22 + basics
+- Placeholder substitution in the worker (currently the worker sends the template body as-is).
+- A "Duplicate template" button.
+- Categorizing templates (transactional vs. marketing) in the UI.
 
-(Node 22 avoids the WebSocket polyfill issue you hit with Node 20.)
+## Confirm
 
-```bash
-apt-get update && apt-get install -y curl ca-certificates
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt-get install -y nodejs
-node -v
-```
-
-You should see `v22.x.x`.
-
----
-
-### 4. Create the service user and folder
-
-```bash
-useradd -r -m -s /bin/bash mailrotor
-mkdir -p /opt/mailrotor-worker
-chown mailrotor:mailrotor /opt/mailrotor-worker
-```
-
----
-
-### 5. Upload the worker files
-
-**Run this from your LOCAL machine** (your laptop), from the project root:
-
-```bash
-scp -r worker/* root@YOUR_DROPLET_IP:/opt/mailrotor-worker/
-```
-
-Back on the droplet, fix ownership:
-
-```bash
-chown -R mailrotor:mailrotor /opt/mailrotor-worker
-```
-
----
-
-### 6. Install dependencies
-
-```bash
-sudo -u mailrotor bash -lc 'cd /opt/mailrotor-worker && npm install'
-```
-
-(No `cd` on its own line — always inside `bash -lc '...'` so it runs as the `mailrotor` user in the right folder.)
-
----
-
-### 7. Create the `.env`
-
-```bash
-sudo -u mailrotor cp /opt/mailrotor-worker/.env.example /opt/mailrotor-worker/.env
-sudo -u mailrotor nano /opt/mailrotor-worker/.env
-```
-
-Paste these values, then save (Ctrl+O, Enter, Ctrl+X):
-
-```
-SUPABASE_URL=https://zmbnejgdswsojqwvvrab.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=PASTE_YOUR_SERVICE_ROLE_KEY_HERE
-SEND_POLL_INTERVAL_MS=2000
-TEST_POLL_INTERVAL_MS=2000
-SMTP_TEST_TIMEOUT_MS=15000
-```
-
-Lock it down:
-
-```bash
-chmod 600 /opt/mailrotor-worker/.env
-```
-
-> Get the service role key from Lovable → Cloud → Backend → Settings → API keys → `service_role` secret.
-
----
-
-### 8. Smoke test (run once in the foreground)
-
-```bash
-sudo -u mailrotor bash -lc 'cd /opt/mailrotor-worker && node worker.js'
-```
-
-You should see:
-
-```
-2026-... MailRotor worker starting…
-2026-... Connected to https://zmbnejgdswsojqwvvrab.supabase.co
-```
-
-Press **Ctrl+C** to stop.
-
-If you see any error, stop here and paste the output — do not continue.
-
----
-
-### 9. Install as a systemd service
-
-```bash
-cat > /etc/systemd/system/mailrotor-worker.service << 'EOF'
-[Unit]
-Description=MailRotor SMTP Worker
-After=network.target
-
-[Service]
-Type=simple
-User=mailrotor
-WorkingDirectory=/opt/mailrotor-worker
-EnvironmentFile=/opt/mailrotor-worker/.env
-ExecStart=/usr/bin/node /opt/mailrotor-worker/worker.js
-Restart=always
-RestartSec=5
-StandardOutput=append:/var/log/mailrotor-worker.log
-StandardError=append:/var/log/mailrotor-worker.log
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-touch /var/log/mailrotor-worker.log
-chown mailrotor:mailrotor /var/log/mailrotor-worker.log
-
-systemctl daemon-reload
-systemctl enable --now mailrotor-worker
-sleep 3
-systemctl status mailrotor-worker --no-pager
-tail -n 40 /var/log/mailrotor-worker.log
-```
-
-Expected: `active (running)` and the same `MailRotor worker starting…` / `Connected to …` lines.
-
----
-
-### 10. Verify end-to-end
-
-1. Open the admin panel in Lovable.
-2. Add (or re-test) an SMTP account → click **Test**. Dot should turn green within ~3s.
-3. Watch live: `tail -f /var/log/mailrotor-worker.log`
-
----
-
-### Handy commands later
-
-```bash
-systemctl restart mailrotor-worker         # restart after editing worker.js
-systemctl stop mailrotor-worker            # stop
-journalctl -u mailrotor-worker -n 100      # alternate log view
-tail -f /var/log/mailrotor-worker.log      # follow logs
-```
-
-To update worker code: re-run the `scp` from step 5, then `systemctl restart mailrotor-worker`.
-
----
-
-### Before I proceed
-
-A couple of things to confirm so I tailor the guide if needed:
-
-1. Do you already have your **SUPABASE_SERVICE_ROLE_KEY** handy, or do you need a reminder where to find it?
-2. Are you SSH-ing from **macOS/Linux** (so `scp` works directly) or **Windows** (then we'd use WinSCP or PowerShell `scp`)?
+Proceed with inserting these 10 templates as-is, or would you like to tweak the wording/branding (company name, signature, footer address) before I insert them?
