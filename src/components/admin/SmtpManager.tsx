@@ -117,6 +117,72 @@ export function SmtpManager() {
     toast.success("SMTP removed");
   };
 
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["name", "host", "port", "username", "password"],
+      ["Mailgun-1", "smtp.mailgun.org", 587, "postmaster@example.com", "your-password"],
+      ["SendGrid-1", "smtp.sendgrid.net", 587, "apikey", "SG.xxxxx"],
+    ]);
+    ws["!cols"] = [{ wch: 18 }, { wch: 24 }, { wch: 8 }, { wch: 30 }, { wch: 24 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SMTP");
+    XLSX.writeFile(wb, "smtp-template.xlsx");
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
+      const norm = (k: string) => k.trim().toLowerCase().replace(/[\s_-]+/g, "");
+      const aliases: Record<string, string> = {
+        name: "name", label: "name",
+        host: "host", server: "host", smtphost: "host",
+        port: "port", smtpport: "port",
+        username: "username", user: "username", login: "username", email: "username",
+        password: "password", pass: "password", pwd: "password", smtppassword: "password",
+      };
+      const toInsert: Array<{ name: string; host: string; port: number; username: string; password: string; rotation_order: number }> = [];
+      const errors: string[] = [];
+      const startOrder = smtps.length;
+      rows.forEach((raw, idx) => {
+        const row: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(raw)) {
+          const mapped = aliases[norm(k)];
+          if (mapped) row[mapped] = v;
+        }
+        const name = String(row.name ?? "").trim();
+        const host = String(row.host ?? "").trim();
+        const username = String(row.username ?? "").trim();
+        const password = String(row.password ?? "");
+        const port = parseInt(String(row.port ?? "587"), 10) || 587;
+        if (!name || !host || !username) {
+          errors.push(`Row ${idx + 2}: missing name/host/username`);
+          return;
+        }
+        toInsert.push({ name, host, port, username, password, rotation_order: startOrder + toInsert.length });
+      });
+      if (toInsert.length === 0) {
+        toast.error(errors[0] ?? "No valid rows found");
+        return;
+      }
+      const { error } = await supabase.from("smtp_accounts").insert(toInsert);
+      if (error) toast.error(error.message);
+      else {
+        toast.success(`Imported ${toInsert.length} SMTP${toInsert.length === 1 ? "" : "s"}${errors.length ? ` · ${errors.length} skipped` : ""}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to parse file");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
