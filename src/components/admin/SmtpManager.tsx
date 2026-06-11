@@ -30,6 +30,8 @@ export function SmtpManager() {
   const [open, setOpen] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", host: "", port: "587", username: "", password: "" });
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     const { data } = await supabase.from("smtp_accounts").select("*").order("rotation_order");
