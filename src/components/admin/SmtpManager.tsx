@@ -201,6 +201,19 @@ export function SmtpManager() {
               <TestTube2 className="h-4 w-4 mr-2" /> Test All
             </Button>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button variant="outline" disabled={importing} onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" /> {importing ? "Importing…" : "Import Excel"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={downloadTemplate} title="Download template">
+            <Download className="h-4 w-4" />
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
